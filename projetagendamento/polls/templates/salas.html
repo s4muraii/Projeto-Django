@@ -1,0 +1,8 @@
+{% block body %}
+{% for sala in salas %}
+    <p>{{ sala.nome }}</p>
+    <p>{{ sala.capacidade }}</p>
+    <p>{{ sala.descricao }}</p>
+    <p>{{ sala.tipo}}</p>
+{% endfor %}
+{% endblock %}

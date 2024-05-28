@@ -3,12 +3,9 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from .models import ReservaModel, has_group
+from .models import ReservaModel, has_group, Sala
 from .forms import LoginForm, CadastroForm, ReservaForm
 from rolepermissions.roles import assign_role
-
-
-
 
 
 def Agendar(request):
@@ -82,3 +79,39 @@ def cadastro(request):
         del form.fields['nivel_acesso']
     
     return render(request, "cadastro.html", {"form": form})
+
+@login_required
+def listasalas(request):
+    salas = Sala.objects.all()
+    return render(request, "salas.html", {"salas": salas})
+
+def gerenciar_reservas(request):
+    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+        return redirect("salas")
+    if request.method == "POST":
+        reserva_id = request.POST.get("reserva_id")
+        reserva = ReservaModel.objects.get(id=reserva_id)
+        reserva.delete()
+        return HttpResponse("Reserva excluída com sucesso!")
+    else:
+        reservas = ReservaModel.objects.all()
+        return render(request, "gerenciar_reservas.html", {"reservas": reservas, "form": ReservaForm()})
+
+@login_required
+def editar_reservas(request, id):
+    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+        return redirect("salas")
+    try:
+        reserva = ReservaModel.objects.get(id=id)
+    except ReservaModel.DoesNotExist:
+        return HttpResponse("Reserva não encontrada!")
+
+    if request.method == "POST":
+        form = ReservaForm(request.POST, instance=reserva)
+        if form.is_valid():
+            reserva = form.save(commit=False)
+            reserva.save()
+            return HttpResponse("Reserva editada com sucesso!")
+    else:
+        form = ReservaForm(instance=reserva)
+        return render(request, "editar_reservas.html", {"form": form})

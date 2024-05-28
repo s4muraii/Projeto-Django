@@ -1,0 +1,17 @@
+
+{% block content %}
+    <h1>Gerenciar Reservas</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        {% for reserva in reservas %}
+            <div>
+                <input type="hidden" name="reserva_id" value="{{ reserva.id }}">
+                <p>{{ reserva }}</p>
+                <button type="submit">Excluir</button>
+                <a href="{% url 'editar_reserva' reserva.id %}">Editar</a>
+
+            </div>
+        {% endfor %}
+    </form>
+{% endblock %}

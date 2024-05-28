@@ -18,6 +18,7 @@ def has_group(self, group_name):
 
 class Sala(models.Model):
     nome = models.CharField(max_length=100)
+    descricao = models.TextField()
     capacidade = models.IntegerField()
     tipo = models.CharField(max_length=15, choices=TIPOS_SALA)
     projetor = models.BooleanField()
@@ -25,6 +26,7 @@ class Sala(models.Model):
 
     def __str__(self):
         return self.nome
+    
 
 
 class ReservaModel(models.Model):
@@ -46,3 +48,4 @@ class ReservaModel(models.Model):
             hora_fim__gt=self.hora_inicio,
         )
         return not reservas_no_mesmo_horario.exists()
+
