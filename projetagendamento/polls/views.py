@@ -3,8 +3,8 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from .models import ReservaModel, has_group, Sala
-from .forms import LoginForm, CadastroForm, ReservaForm
+from .models import ReservaModel, Sala
+from .forms import LoginForm, CadastroForm, ReservaForm, SalaForm
 from rolepermissions.roles import assign_role
 
 
@@ -115,3 +115,30 @@ def editar_reservas(request, id):
     else:
         form = ReservaForm(instance=reserva)
         return render(request, "editar_reservas.html", {"form": form})
+    
+@login_required
+def cadastrar_sala(request):
+    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+        return redirect("salas")
+    if request.method == "POST":
+        form = SalaForm(request.POST)
+        if form.is_valid():
+            nome = form.cleaned_data["nome"]
+            descricao = form.cleaned_data["descricao"]
+            capacidade = form.cleaned_data["capacidade"]
+            tipo = form.cleaned_data["tipo"]
+            projetor = form.cleaned_data["projetor"]
+            ar_condicionado = form.cleaned_data["ar_condicionado"]
+            sala = Sala(
+                nome=nome,
+                descricao=descricao,
+                capacidade=capacidade,
+                tipo=tipo,
+                projetor=projetor,
+                ar_condicionado=ar_condicionado,
+            )
+            sala.save()
+            return HttpResponse("Sala cadastrada com sucesso!")
+    else:
+        form = SalaForm()
+        return render(request, "cadastrar_sala.html", {"form": form})

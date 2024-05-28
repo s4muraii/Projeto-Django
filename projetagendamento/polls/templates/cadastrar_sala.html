@@ -1,0 +1,19 @@
+{% load static %}
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/form.css' %}">
+{% endblock %}
+{% block body %}
+<div class="container">
+    <div class="form-box">
+        <form class="form" action="" method="POST">
+            <span class="title">Sign up</span>
+            <div class="form-container">
+                {% csrf_token %}
+                {{form}}
+            </div>
+            <div class="form-section">
+                <input type="submit" value="Login" class="botao">
+        </form>
+    </div>
+</div>
+{% endblock %}

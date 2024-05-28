@@ -1,6 +1,5 @@
 from django import forms
-from .models import TIPOS_SALA, ReservaModel, NIVEL_ACESSO, has_group
-from django.contrib.auth.models import Group
+from .models import TIPOS_SALA, ReservaModel, NIVEL_ACESSO, Sala
 
 
 class VerificacaoDisponibilidadeForm(forms.Form):
@@ -69,3 +68,18 @@ class CadastroForm(forms.Form):
         choices=NIVEL_ACESSO,
         widget=forms.Select(attrs={"class": "input"}),
     )
+    
+    
+class SalaForm(forms.ModelForm):
+    class Meta:
+        model = Sala
+        fields = ["nome", "descricao", "capacidade", "tipo", "projetor", "ar_condicionado"]
+        widgets = {
+            "nome": forms.TextInput(attrs={"class": "input", "placeholder": "Nome"}),
+            "descricao": forms.Textarea(attrs={"class": "input", "placeholder": "Descrição"}),
+            "capacidade": forms.NumberInput(attrs={"class": "input", "placeholder": "Capacidade"}),
+            "tipo": forms.Select(choices=TIPOS_SALA, attrs={"class": "input"}),
+            "projetor": forms.CheckboxInput(attrs={"class": "input"}),
+            "ar_condicionado": forms.CheckboxInput(attrs={"class": "input"}),
+        }
+        
