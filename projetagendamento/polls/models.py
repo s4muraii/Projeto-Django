@@ -10,6 +10,7 @@ TIPOS_SALA = (
     ("OFICINA", "Oficina"),
 )
 
+
 class Sala(models.Model):
     nome = models.CharField(max_length=100)
     capacidade = models.IntegerField()
@@ -19,7 +20,7 @@ class Sala(models.Model):
 
     def __str__(self):
         return self.nome
-    
+
 
 class ReservaModel(models.Model):
     sala = models.ForeignKey(Sala, on_delete=models.CASCADE)
@@ -31,12 +32,12 @@ class ReservaModel(models.Model):
 
     def __str__(self):
         return f"{self.sala} - {self.data} - {self.hora_inicio} - {self.hora_fim} - {self.responsavel}"
-    
+
     def verificar_disponibilidade(self):
-            reservas_no_mesmo_horario = ReservaModel.objects.filter(
-                sala=self.sala,
-                data=self.data,
-                hora_inicio__lt=self.hora_fim,
-                hora_fim__gt=self.hora_inicio
-            )
-            return not reservas_no_mesmo_horario.exists()
+        reservas_no_mesmo_horario = ReservaModel.objects.filter(
+            sala=self.sala,
+            data=self.data,
+            hora_inicio__lt=self.hora_fim,
+            hora_fim__gt=self.hora_inicio,
+        )
+        return not reservas_no_mesmo_horario.exists()
