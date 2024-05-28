@@ -1,5 +1,6 @@
 from django import forms
-from .models import TIPOS_SALA, ReservaModel, Sala
+from .models import TIPOS_SALA, ReservaModel, NIVEL_ACESSO, has_group
+from django.contrib.auth.models import Group
 
 
 class VerificacaoDisponibilidadeForm(forms.Form):
@@ -62,4 +63,9 @@ class CadastroForm(forms.Form):
         label="",
         max_length=50,
         widget=forms.TextInput(attrs={"class": "input", "placeholder": "Nome"}),
+    )
+    nivel_acesso = forms.ChoiceField(
+        label="",
+        choices=NIVEL_ACESSO,
+        widget=forms.Select(attrs={"class": "input"}),
     )

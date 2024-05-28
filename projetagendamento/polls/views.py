@@ -1,13 +1,14 @@
 from django.shortcuts import render, HttpResponse
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from .models import ReservaModel, Sala
-from .forms import VerificacaoDisponibilidadeForm, LoginForm, CadastroForm, ReservaForm
+from .models import ReservaModel, has_group
+from .forms import LoginForm, CadastroForm, ReservaForm
+from rolepermissions.roles import assign_role
 
 
-def superadmin_check(user):
-    return user.is_superuser
+
 
 
 def Agendar(request):
@@ -52,13 +53,32 @@ def Logar(request):
 
 
 @login_required
-@user_passes_test(superadmin_check)
 def cadastro(request):
+    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+        return HttpResponse("Você não tem permissão para acessar essa página!")
     if request.method == "POST":
         form = CadastroForm(request.POST)
         if form.is_valid():
-            form.save()
-            return HttpResponse("Usuario cadastrada com sucesso!")
+            user = form.cleaned_data["username"]
+            senha = form.cleaned_data["senha"]
+            if (User.objects.filter(username=user).exists() or User.objects.filter(email=user).exists()):
+                return HttpResponse("Informações já cadastradas!")
+            if request.user.groups.filter(name='SuperAdmin').exists():
+                nivel_acesso = form.cleaned_data["nivel_acesso"]
+                nivel_acesso = form.cleaned_data["nivel_acesso"]
+                novousuario = User.objects.create_user(username=user, password=senha)
+                novousuario.save()
+                assign_role(novousuario, nivel_acesso)
+            else:
+                nivel_acesso = "funcionario"
+                novousuario = User.objects.create_user(username=user, password=senha)
+                novousuario.save()
+                assign_role(novousuario, nivel_acesso)
+            return HttpResponse(f"{nivel_acesso} cadastradado com sucesso!")
+    elif request.user.groups.filter(name='SuperAdmin').exists():
+            form = CadastroForm()
     else:
         form = CadastroForm()
+        del form.fields['nivel_acesso']
+    
     return render(request, "cadastro.html", {"form": form})
