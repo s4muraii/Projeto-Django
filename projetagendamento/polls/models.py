@@ -1,5 +1,36 @@
 from django.db import models
 import datetime
+from django.contrib.auth.models import Group, Permission
+
+# Create groups for each user level
+group_superadmin = Group(name="SuperAdmin")
+group_secretaria = Group(name="Secretaria")
+group_professores = Group(name="Professor")
+
+# Save the groups to the database
+group_superadmin.save()
+group_secretaria.save()
+group_professores.save()
+
+# Define permissions for each user level
+permission_manage_users = Permission(
+    name="Gerenciar Usuarios", codename="Gerenciar_Usuarios"
+)
+permission_add_user = Permission(name="Add User", codename="add_user")
+permission_edit_user = Permission(name="Edit User", codename="edit_user")
+permission_delete_user = Permission(name="Delete User", codename="delete_user")
+
+# Assign permissions to groups
+group_superadmin.permissions.add(
+    permission_manage_users,
+    permission_add_user,
+    permission_edit_user,
+    permission_delete_user,
+)
+group_secretaria.permissions.add(
+    permission_manage_users, permission_add_user, permission_edit_user
+)
+group_professores.permissions.add()
 
 # Create your models here.
 TIPOS_SALA = (

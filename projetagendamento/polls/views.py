@@ -31,36 +31,20 @@ def Agendar(request):
     return render(request, "agendar.html", {"form": ReservaForm()})
 
 
-def verificar_disponibilidade(request):
-    disponivel = None
-    if request.method == "POST":
-        form = VerificacaoDisponibilidadeForm(request.POST)
-        if form.is_valid():
-            nome_item = form.cleaned_data["nome_item"]
-            try:
-                item = Sala.objects.get(nome=nome_item)
-                disponivel = item.disponivel
-            except Sala.DoesNotExist:
-                disponivel = False
-    else:
-        form = VerificacaoDisponibilidadeForm()
-    return render(
-        request, "disponibilidade.html", {"form": form, "disponivel": disponivel}
-    )
-
-
-def Login(request):
+def Logar(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data["username"]
             senha = form.cleaned_data["senha"]
-            user = authenticate(username=username, password=senha)
+            user = authenticate(request, username=username, password=senha)
             if user is not None:
                 login(request, user)
                 return HttpResponse("Login realizado com sucesso!")
             else:
                 return HttpResponse("Login ou senha inválidos!")
+
+        return render(request, "login.html", {"form": LoginForm()})
 
     else:
         form = LoginForm(request.POST)
@@ -74,7 +58,7 @@ def cadastro(request):
         form = CadastroForm(request.POST)
         if form.is_valid():
             form.save()
-            return HttpResponse("Sala cadastrada com sucesso!")
+            return HttpResponse("Usuario cadastrada com sucesso!")
     else:
         form = CadastroForm()
     return render(request, "cadastro.html", {"form": form})
