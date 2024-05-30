@@ -142,3 +142,10 @@ def cadastrar_sala(request):
     else:
         form = SalaForm()
         return render(request, "cadastrar_sala.html", {"form": form})
+    
+def filtro_horarios(request):
+    if request.method == "POST":
+        data = request.POST.get("data")
+        reservas_filtradas = ReservaModel.objects.filter(data=data)
+        return render(request, "filtro_cadastro.html", {"reservas": reservas_filtradas})
+    
