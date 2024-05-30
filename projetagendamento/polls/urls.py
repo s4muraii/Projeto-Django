@@ -1,12 +1,14 @@
 from django.urls import path
 from . import views
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
-    path("salas/", views.listasalas, name="salas"),
-    path("agendar/", views.Agendar, name="agendar"),
-    path("login/", views.Logar, name="login"),
-    path("cadastro/", views.cadastro, name="cadastro"),
-    path("gerenciar_reservas/", views.gerenciar_reservas, name="gerenciar_reservas"),
-    path("editar_reserva/<int:id>/", views.editar_reservas, name="editar_reserva"),
-    path("cadastrar_sala/", views.cadastrar_sala, name="cadastrar_sala"),
+    path("salas/", views.ListarSalas.as_view(), name="salas"),
+    path("agendar/", views.ReservaView.as_view(), name="agendar"),
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path("login/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("cadastro/", views.CadastroView.as_view(), name="cadastro"),
+    path("gerenciar_reservas/", views.GerenciarReservas.as_view(), name="gerenciar_reservas"),
+    path("editar_reserva/<int:id>/", views.EditarReservas.as_view(),name="editar_reserva"),
+    path("cadastrar_sala/", views.CadastrarSalas.as_view(), name="cadastrar_sala"),
 ]

@@ -1,68 +1,87 @@
-from django.shortcuts import render, HttpResponse
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.shortcuts import redirect
 from .models import ReservaModel, Sala
-from .forms import LoginForm, CadastroForm, ReservaForm, SalaForm
 from rolepermissions.roles import assign_role
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .serializers import ReservaSerializer, LoginSerializer, CadastroSerializer, SalaSerializer, GerenciarSerializer
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 
-def Agendar(request):
-    if request.method == "POST":
-        form = ReservaForm(request.POST)
-        if form.is_valid():
-            horarios_existentes = ReservaModel.objects.filter(
-                sala=form.cleaned_data["sala"],
-                data=form.cleaned_data["data"],
-                hora_inicio__lt=form.cleaned_data["hora_fim"],
-                hora_fim__gt=form.cleaned_data["hora_inicio"],
-            )
-            if horarios_existentes.exists():
-                return HttpResponse("Horário indisponível!")
-            else:
-                reserva = form.save(commit=False)
-                reserva.sala = form.cleaned_data["sala"]
-                reserva.save()
-                return HttpResponse("Reserva realizada com sucesso!")
-
-    return render(request, "agendar.html", {"form": ReservaForm()})
-
-
-def Logar(request):
-    if request.method == "POST":
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            username = form.cleaned_data["username"]
-            senha = form.cleaned_data["senha"]
-            user = authenticate(request, username=username, password=senha)
+@method_decorator(csrf_exempt, name='dispatch')
+class LogarView(APIView):
+    def post(self, request, format=None):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data.get('username')
+            password = serializer.validated_data.get('password')
+            user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return HttpResponse("Login realizado com sucesso!")
+                return Response({"message": "Login realizado com sucesso!"}, status=status.HTTP_200_OK)
             else:
-                return HttpResponse("Login ou senha inválidos!")
+                return Response({"message": "Login ou senha inválidos!"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return render(request, "login.html", {"form": LoginForm()})
+class ReservaView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, format=None):
+        serializer = ReservaSerializer(data=request.data)
+        if serializer.is_valid():
+            horarios_existentes = ReservaModel.objects.filter(
+                sala=serializer.validated_data["sala"],
+                data=serializer.validated_data["data"],
+                hora_inicio__lt=serializer.validated_data["hora_fim"],
+                hora_fim__gt=serializer.validated_data["hora_inicio"],
+                descricao = serializer.validated_data["descricao"]
+            )
+            if horarios_existentes.exists():
+                return Response({"message": "Horário indisponível!"}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                serializer.save(responsavel=request.user.username)
+                return Response({"message": "Reserva realizada com sucesso!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    else:
-        form = LoginForm(request.POST)
-    return render(request, "login.html", {"form": form})
+
+@method_decorator(csrf_exempt, name='dispatch')
+class LogarView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request, format=None):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data.get('username')
+            password = serializer.validated_data.get('senha')
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return Response({"message": "Login realizado com sucesso!"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Login ou senha inválidos!"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@login_required
-def cadastro(request):
-    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
-        return HttpResponse("Você não tem permissão para acessar essa página!")
-    if request.method == "POST":
-        form = CadastroForm(request.POST)
-        if form.is_valid():
-            user = form.cleaned_data["username"]
-            senha = form.cleaned_data["senha"]
+@method_decorator(login_required, name='dispatch')
+class CadastroView(APIView):
+    def post(self, request, format=None):
+        if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+            return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
+        serializer = CadastroSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data["username"]
+            senha = serializer.validated_data["senha"]
             if (User.objects.filter(username=user).exists() or User.objects.filter(email=user).exists()):
-                return HttpResponse("Informações já cadastradas!")
+                return Response("Informações já cadastradas!", status=status.HTTP_400_BAD_REQUEST)
             if request.user.groups.filter(name='SuperAdmin').exists():
-                nivel_acesso = form.cleaned_data["nivel_acesso"]
-                nivel_acesso = form.cleaned_data["nivel_acesso"]
+                nivel_acesso = serializer.validated_data["nivel_acesso"]
                 novousuario = User.objects.create_user(username=user, password=senha)
                 novousuario.save()
                 assign_role(novousuario, nivel_acesso)
@@ -71,81 +90,76 @@ def cadastro(request):
                 novousuario = User.objects.create_user(username=user, password=senha)
                 novousuario.save()
                 assign_role(novousuario, nivel_acesso)
-            return HttpResponse(f"{nivel_acesso} cadastradado com sucesso!")
-    elif request.user.groups.filter(name='SuperAdmin').exists():
-            form = CadastroForm()
-    else:
-        form = CadastroForm()
-        del form.fields['nivel_acesso']
+            return Response(f"{nivel_acesso} cadastradado com sucesso!", status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@method_decorator(login_required, name='dispatch')
+class ListarSalas(APIView):
+    def get(self, request, format= None):
+        salas = Sala.objects.all()
+        serializer = SalaSerializer(salas, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
-    return render(request, "cadastro.html", {"form": form})
-
-@login_required
-def listasalas(request):
-    salas = Sala.objects.all()
-    return render(request, "salas.html", {"salas": salas})
-
-def gerenciar_reservas(request):
-    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
-        return redirect("salas")
-    if request.method == "POST":
-        reserva_id = request.POST.get("reserva_id")
-        reserva = ReservaModel.objects.get(id=reserva_id)
-        reserva.delete()
-        return HttpResponse("Reserva excluída com sucesso!")
-    else:
+@method_decorator(login_required, name='dispatch')
+class GerenciarReservas(APIView):
+    def get(self, request, format=None):
+        if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+            return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
         reservas = ReservaModel.objects.all()
-        return render(request, "gerenciar_reservas.html", {"reservas": reservas, "form": ReservaForm()})
-
-@login_required
-def editar_reservas(request, id):
-    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
-        return redirect("salas")
-    try:
-        reserva = ReservaModel.objects.get(id=id)
-    except ReservaModel.DoesNotExist:
-        return HttpResponse("Reserva não encontrada!")
-
-    if request.method == "POST":
-        form = ReservaForm(request.POST, instance=reserva)
-        if form.is_valid():
-            reserva = form.save(commit=False)
-            reserva.save()
-            return HttpResponse("Reserva editada com sucesso!")
-    else:
-        form = ReservaForm(instance=reserva)
-        return render(request, "editar_reservas.html", {"form": form})
+        serializer = ReservaSerializer(reservas, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
-@login_required
-def cadastrar_sala(request):
-    if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
-        return redirect("salas")
-    if request.method == "POST":
-        form = SalaForm(request.POST)
-        if form.is_valid():
-            nome = form.cleaned_data["nome"]
-            descricao = form.cleaned_data["descricao"]
-            capacidade = form.cleaned_data["capacidade"]
-            tipo = form.cleaned_data["tipo"]
-            projetor = form.cleaned_data["projetor"]
-            ar_condicionado = form.cleaned_data["ar_condicionado"]
-            sala = Sala(
-                nome=nome,
-                descricao=descricao,
-                capacidade=capacidade,
-                tipo=tipo,
-                projetor=projetor,
-                ar_condicionado=ar_condicionado,
-            )
-            sala.save()
-            return HttpResponse("Sala cadastrada com sucesso!")
-    else:
-        form = SalaForm()
-        return render(request, "cadastrar_sala.html", {"form": form})
+    def post(self, request, format=None):
+        if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+            return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
+        else:
+            serializer = GerenciarSerializer(data=request.data)
+            if serializer.is_valid():
+                reserva_id = serializer.validated_data["id"]
+                reserva = ReservaModel.objects.get(id=reserva_id)
+                reserva.delete()
+        return Response("Reserva excluída com sucesso!", status=status.HTTP_200_OK)
     
-def filtro_horarios(request):
-    if request.method == "POST":
-        data = request.POST.get("data")
+
+
+@method_decorator(login_required, name='dispatch')
+class EditarReservas(APIView):
+    def get (self, request, id, format=None):
+        if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+            return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
+        try:
+            reserva = ReservaModel.objects.get(id=id)
+        except ReservaModel.DoesNotExist:
+            return Response(f"Reserva não encontrada!", status=status.HTTP_404_NOT_FOUND)
+        serializer = ReservaSerializer(reserva)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    def post(self, request, id, format=None):
+        if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+            return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
+        try:
+            reserva = ReservaModel.objects.get(id=id)
+        except ReservaModel.DoesNotExist:
+            return Response("Reserva não encontrada!", status=status.HTTP_404_NOT_FOUND)
+        serializer = ReservaSerializer(reserva, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@method_decorator(login_required, name='dispatch')
+class CadastrarSalas(APIView):
+    def post(self, request, format=None):
+        if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+            return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
+        serializer = SalaSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class FiltroHorarios(APIView):
+    def post(self, request, format=None):
+        data = request.data["data"]
         reservas_filtradas = ReservaModel.objects.filter(data=data)
-        return render(request, "filtro_cadastro.html", {"reservas": reservas_filtradas})
-    
+        serializer = ReservaSerializer(reservas_filtradas, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
