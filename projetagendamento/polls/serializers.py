@@ -12,9 +12,10 @@ class LoginSerializer(serializers.Serializer):
     
 class CadastroSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
-    senha = serializers.CharField(style={'input_type': 'password'})
+    password = serializers.CharField(style={'input_type': 'password'})
     email = serializers.EmailField()
-    nome = serializers.CharField(max_length=50)
+    first_name = serializers.CharField(max_length=50)  
+    last_name = serializers.CharField(max_length=50) 
     nivel_acesso = serializers.ChoiceField(choices=NIVEL_ACESSO)
     
 class SalaSerializer(serializers.ModelSerializer):

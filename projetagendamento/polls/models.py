@@ -1,9 +1,12 @@
-from email.mime.text import MIMEText
 from django.core.mail import send_mail
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 import platform
 import requests
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.db import models
+from rest_framework_simplejwt.state import token_backend
 
 TIPOS_SALA = (
     ("REUNIÂO", "Sala de Reunião"),
@@ -18,6 +21,13 @@ NIVEL_ACESSO = (
     ("funcionario", "Funcionario"),
 )
 
+def get_id_by_token(request):
+    token = request.headers.get('Authorization').split(' ')[1]
+    print ("Token: ", token)
+    token_bytes = token.encode('utf-8')  # Convert the token to bytes
+    valid_token = token_backend.decode(token_bytes, verify=False)
+    id = valid_token['user_id']
+    return id
 
 def send_verification_email(user, verification_code):
     # Get system information
@@ -37,6 +47,7 @@ def send_verification_email(user, verification_code):
                 <li>Sistema Operacional: {system_info.system}</li>
                 <li>Endereço IP: {ip_info['ip']}</li>
                 <li>Localização: {ip_info['city']}, {ip_info['region']}</li>
+                
             </ul>
         </div>
         """
@@ -97,3 +108,9 @@ class ReservaModel(models.Model):
         )
         return not reservas_no_mesmo_horario.exists()
 
+
+class User(AbstractUser):
+    nivel_acesso = models.CharField(max_length=15, choices=NIVEL_ACESSO, default="funcionario")
+    
+    groups = models.ManyToManyField(Group, blank=True, related_name="polls_user_set")
+    user_permissions = models.ManyToManyField(Permission, blank=True, related_name="polls_user_set")

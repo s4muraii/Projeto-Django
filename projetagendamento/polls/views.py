@@ -1,16 +1,15 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.mail import send_mail
-from django.conf import settings
-from .models import ReservaModel, Sala, send_verification_email
+from .models import ReservaModel, Sala, send_verification_email, get_id_by_token
 from rolepermissions.roles import assign_role
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .serializers import ReservaSerializer,  CadastroSerializer, SalaSerializer, GerenciarSerializer
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from rest_framework.decorators import permission_classes
+from django.core.cache import cache
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
@@ -25,25 +24,31 @@ class LoginView(APIView):
         if user is not None:
             # User is valid, now send verification code
             verification_code = random.randint(100000, 999999)
-            # Save the verification code in the session
-            self.request.session['verification_code'] = verification_code
+            # Save the verification code in the cache with a key that includes the username
+            cache.set(f'verification_code_{username}', verification_code, timeout=300)
+            print(f"Sent verification code: {verification_code}")
             # Send the verification code to the user's email
             send_verification_email(user, verification_code)
             return Response({'message': 'Verification code sent'}, status=status.HTTP_200_OK)
         else:
             # Invalid username or password
             return Response({'error': 'Invalid username or password'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
 class VerifyCodeView(APIView):
     def post(self, request):
+        username = request.data.get('username')
         verification_code = request.data.get('verification_code')
-        if verification_code == self.request.session.get('verification_code'):
-            user = User.objects.get(username=request.data.get('username'))
+        # Get the verification code from the cache using a key that includes the username
+        stored_code = cache.get(f'verification_code_{username}')
+        print(f"Received verification code: {verification_code}")
+        print(f"Stored verification code: {stored_code}")
+        if verification_code == stored_code:
+            user = User.objects.get(username=username)
             refresh = RefreshToken.for_user(user)
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
-            })
+            }, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid verification code'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -68,27 +73,38 @@ class ReservaView(APIView):
                 return Response({"message": "Reserva realizada com sucesso!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@method_decorator(login_required, name='dispatch')
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
+
+@permission_classes([IsAuthenticated])
 class CadastroView(APIView):
-    def post(self, request, format=None):
-        if not (request.user.groups.filter(name='SuperAdmin').exists() or request.user.groups.filter(name='secretaria').exists()):
+    def get (self, request, format=None):
+        user_id = get_id_by_token(request)
+        user = User.objects.get(id=user_id)
+        
+        if not (user.groups.filter(name='SuperAdmin').exists() or user.groups.filter(name='secretaria').exists()):
             return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
+        nivel_acesso = user.groups.all()[0].name
+        return Response({
+            'message': 'Você tem permissão para acessar essa página!',
+            'nivel_acesso': nivel_acesso
+            }, status=status.HTTP_200_OK)
+    
+    def post(self, request, format=None):
         serializer = CadastroSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data["username"]
-            senha = serializer.validated_data["senha"]
+            senha = serializer.validated_data["password"]
+            email = serializer.validated_data["email"]
+            nome = serializer.validated_data["first_name"]
+            sobrenome = serializer.validated_data["last_name"]
+            nivel_acesso = serializer.validated_data["nivel_acesso"]
+            
             if (User.objects.filter(username=user).exists() or User.objects.filter(email=user).exists()):
                 return Response("Informações já cadastradas!", status=status.HTTP_400_BAD_REQUEST)
-            if request.user.groups.filter(name='SuperAdmin').exists():
-                nivel_acesso = serializer.validated_data["nivel_acesso"]
-                novousuario = User.objects.create_user(username=user, password=senha, email=serializer.validated_data["email"], first_name=serializer.validated_data["nome"])
-                novousuario.save()
-                assign_role(novousuario, nivel_acesso)
-            else:
-                nivel_acesso = "funcionario"
-                novousuario = User.objects.create_user(username=user, password=senha)
-                novousuario.save()
-                assign_role(novousuario, nivel_acesso)
+            novousuario = User.objects.create_user(username=user, password=senha, email=email, first_name=nome, last_name=sobrenome)
+            novousuario.save()
+            assign_role(novousuario, nivel_acesso)
             return Response(f"{nivel_acesso} cadastradado com sucesso!", status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
