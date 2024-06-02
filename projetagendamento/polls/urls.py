@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path("salas/", views.ListarSalas.as_view(), name="salas"),
@@ -12,4 +12,6 @@ urlpatterns = [
     path("gerenciar_reservas/", views.GerenciarReservas.as_view(), name="gerenciar_reservas"),
     path("editar_reserva/<int:id>/", views.EditarReservas.as_view(),name="editar_reserva"),
     path("cadastrar_sala/", views.CadastrarSalas.as_view(), name="cadastrar_sala"),
+    path("filtros/", views.BuscaFiltros.as_view(), name="filtros"),
+    path("calendario/<int:id>/", views.CalendarioID.as_view(), name="CalendarioID"),
 ]

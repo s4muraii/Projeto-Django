@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.staticfiles',
     'polls',
     'rolepermissions',
     'corsheaders',
@@ -55,6 +56,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'projetagendamento.urls'
+
+STATIC_URL = '/static/'
 
 TEMPLATES = [
     {
@@ -121,7 +124,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 MEDIA_URL = 'media/'
-
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
@@ -131,7 +134,8 @@ ROLEPERMISSIONS_MODULE = "polls.roles"
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = [
-    'http://localhost:3000',  
+    'http://localhost:3001',
+    'http://localhost:3000'
 ]
 
 REST_FRAMEWORK = {

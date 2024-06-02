@@ -3,9 +3,11 @@ from .models import ReservaModel,Sala, NIVEL_ACESSO, TIPOS_SALA
 
 
 class ReservaSerializer(serializers.ModelSerializer):
+    responsavel = serializers.CharField(required=False)
+    sala = serializers.CharField(required=False)
     class Meta:
         model = ReservaModel
-        fields = ['sala', 'data', 'hora_inicio', 'hora_fim', 'descricao']
+        fields = ['id','sala','responsavel', 'dia', 'hora_inicio', 'hora_fim', 'descricao', 'event_id']
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     senha = serializers.CharField(style={'input_type': 'password'})
@@ -21,6 +23,6 @@ class CadastroSerializer(serializers.Serializer):
 class SalaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sala
-        fields = ['nome', 'descricao', 'capacidade', 'tipo', 'projetor', 'ar_condicionado']
+        fields = ['nome', 'descricao', 'capacidade', 'tipo', 'projetor', 'ar_condicionado', 'id', 'imagem']
 class GerenciarSerializer(serializers.Serializer):
     id = serializers.IntegerField()
