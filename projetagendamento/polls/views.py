@@ -1,5 +1,4 @@
 from django.contrib.auth import authenticate
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import ReservaModel, Sala, send_verification_email, get_id_by_token, create_google_calendar_event, delete_google_calendar_event, update_google_calendar_event, CALENDAR_IDS
 from rolepermissions.roles import assign_role
@@ -33,7 +32,7 @@ class LoginView(APIView):
             send_verification_email(user, verification_code)
             return Response({'message': 'Verification code sent'}, status=status.HTTP_200_OK)
         else:
-            # Invalid username or password
+            # Invalid username or x'password
             return Response({'error': 'Invalid username or password'}, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyCodeView(APIView):
@@ -60,7 +59,9 @@ class ReservaView(APIView):
             user_id = get_id_by_token(request)
             user = User.objects.get(id=user_id)
             if not user :
-                return Response("Você não tem permissão para acessar essa página!", status=status.HTTP_403_FORBIDDEN)
+                return Response({
+                    'error': 'Usuário não encontrado!'
+                }, status=status.HTTP_403_FORBIDDEN)
             serializer = ReservaSerializer(data=request.data)
             print(request.data)
             if serializer.is_valid():
@@ -75,7 +76,8 @@ class ReservaView(APIView):
                 print(serializer.errors)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             if horarios_existentes.exists():
-                    return Response({"message": "Horário indisponível!"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"message": "Horário indisponível!"}, status=status.HTTP_400_BAD_REQUEST
+                                )
             else:
                     #Combinar dia com hora_inicio e hora_fim para criar objetos datetime completos
                     start_datetime = datetime.combine(serializer.validated_data["dia"], serializer.validated_data["hora_inicio"])
