@@ -76,8 +76,7 @@ class ReservaView(APIView):
                 print(serializer.errors)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             if horarios_existentes.exists():
-                    return Response({"message": "Horário indisponível!"}, status=status.HTTP_400_BAD_REQUEST
-                                )
+                    return Response({"message": "Horário indisponível!"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                     #Combinar dia com hora_inicio e hora_fim para criar objetos datetime completos
                     start_datetime = datetime.combine(serializer.validated_data["dia"], serializer.validated_data["hora_inicio"])
