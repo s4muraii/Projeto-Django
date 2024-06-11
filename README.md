@@ -1,4 +1,4 @@
-# Agenda
+```# Agenda
 <table>
 <tr>
     <td align="center">
@@ -11,7 +11,7 @@
 
 ## **Descrição do Aplicativo Agenda**
 
-loren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren loren
+O Sistema de Agendamentos de Sala é uma plataforma desenvolvida para facilitar o gerenciamento e a reserva de salas de aula, laboratórios de informática e oficinas no Senai Jundiaí. Este sistema visa otimizar o uso dos espaços disponíveis, garantindo que professores e coordenadores possam agendar e gerenciar as salas de maneira eficiente e organizada.
 
 ### Bibliotecas usadas
 
@@ -45,7 +45,7 @@ loren lorenloren lorenloren lorenloren lorenloren lorenloren lorenloren lorenlor
     <table>
     <tr>
         <td align="center" >
-        <a href="">
+        <a href="https://gabrielneco.notion.site/Documenta-o-Agendamento-de-Salas-4a7e85d1f7a74f139ccdb51a843b025e">
             <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Notion_app_logo.png" width="115px;" alt="Foto_Notion"/><br>
             <sub>
             <b>Documentação</b>
